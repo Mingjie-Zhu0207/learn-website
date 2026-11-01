@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: homework-submit-site
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    healthCheckPath: /health
+    disk:
+      name: homework-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: DATA_DIR
+        value: /var/data
+      - key: UPLOAD_DIR
+        value: /var/data/uploads
+      - key: DATABASE_PATH
+        value: /var/data/homework.db
+      - key: MAX_UPLOAD_MB
+        value: 20
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: TEACHER_INVITE_CODE
+        sync: false
