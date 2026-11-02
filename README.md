@@ -1,37 +1,64 @@
-# 澄屿作业提交站
+# 诚语课堂
 
-一个面向课堂作业的 Flask 网站：学生注册并提交文字/附件，教师发布作业、查看提交并填写成绩与评语。
+诚语课堂是一个面向课堂作业的 Flask 网站。当前包含学生注册登录、教师作业发布/收作业/批改，以及管理员初始化和教师账号管理基础功能。
+
+## 本次权限升级
+
+- 角色为 `admin`、`teacher`、`student`；公开注册由服务器固定创建 `student`，忽略客户端提交的 `role` 字段。
+- 管理员没有公开注册页。首次管理员必须在可信的本地终端或 Render Shell 运行一次性命令创建。
+- 教师账号由已登录管理员在教师管理页创建。系统生成随机临时密码，创建页仅显示一次；教师首次登录后必须更改密码。
+- 管理员可以搜索/分页查看教师、编辑姓名/手机号、禁用/恢复账号，并查看相应操作日志。
+- 教师只能查看和批改自己发布的作业；学生只能查看自己的提交、成绩和评语。
+- 登录密码使用 Werkzeug 安全哈希保存，不保存明文。
 
 ## 本地运行
 
 1. 安装 Python 3.11 或更新版本。
-2. 在此目录运行 `python -m venv .venv`，激活虚拟环境。
-3. 运行 `pip install -r requirements.txt`。
-4. 设置教师首次登录账号（PowerShell 示例）：
+2. 在项目目录创建并激活虚拟环境：`python -m venv .venv`。
+3. 安装依赖：`pip install -r requirements.txt`。
+4. 设置固定的本地密钥并启动：
 
    ```powershell
-   $env:SECRET_KEY = "换成一段随机长字符串"
-   $env:ADMIN_USERNAME = "teacher"
-   $env:ADMIN_PASSWORD = "请换成至少 12 位强密码"
-   $env:TEACHER_INVITE_CODE = "仅分享给教师的注册口令"
+   $env:SECRET_KEY = "本机随机长字符串，不要提交到 Git"
    python app.py
    ```
 
-5. 打开 `http://127.0.0.1:5000`。学生可从注册页注册；教师可登录预置账号，或在注册时填写教师口令。
+   第一次启动会创建 SQLite 数据库。若检测到旧版用户表，程序会先在同一数据库目录创建 `*.pre-roles-时间戳.bak` 备份，再迁移角色约束和账号状态字段。
 
-首次创建的管理员只会在对应用户名不存在时生成。生产环境请使用唯一、强密码和随机 `SECRET_KEY`，不要把真实密钥提交到 Git。
+5. 在另一终端创建首个管理员：
 
-## 部署到 Render
+   ```powershell
+   flask --app app create-admin
+   ```
 
-项目已包含 `render.yaml`。将整个文件夹推送到 GitHub/GitLab 后，在 Render 选择 **New → Blueprint** 并连接仓库。创建时填写 `ADMIN_USERNAME`、`ADMIN_PASSWORD` 和 `TEACHER_INVITE_CODE`。Blueprint 会配置 Python/Gunicorn、健康检查和挂载到 `/var/data` 的持久磁盘。
+   命令会交互式读取用户名和两次密码输入，密码至少 14 位。数据库里只保存密码哈希；管理员账号存在后，此命令会拒绝再次创建管理员。
 
-持久磁盘用于保留 SQLite 数据库和上传附件；Render 文档注明持久磁盘仅适用于付费服务。若选择不带持久磁盘的免费实例，重新部署或实例重启后本地数据库和附件可能丢失。此配置采用一个 Web 实例配一块磁盘，适合小型班级/课程使用。
+6. 打开 `http://127.0.0.1:5000` 登录管理员。进入“教师管理”创建教师账号，再将一次性临时密码安全地交给教师。
 
-## 功能与限制
+## Render 部署
 
-- 学生账号注册、登录和退出；密码使用 Werkzeug 哈希存储。
-- 教师新建作业、设置截止时间、查看学生提交、下载附件、录入成绩和评语。
-- 学生可编辑文字说明并上传一个附件；再次提交会替换旧附件并清空旧评分。
-- 支持 PDF、Office 文档、TXT、ZIP、JPG、PNG，单文件默认上限 20 MB。
-- 教师注册口令由 `TEACHER_INVITE_CODE` 环境变量控制；未设置时教师自助注册关闭。
-- 当前不含邮箱验证、找回密码、课程分班、在线预览、批量导出或防作弊功能。
+项目仍使用 `render.yaml` 启动 Flask/Gunicorn，并将 SQLite 数据与附件放在 `/var/data` 持久磁盘。部署新版本前先确认现有服务磁盘上的数据库路径是 `/var/data/homework.db`，并确保有可恢复备份。首次启动旧数据库会自动备份并迁移用户表。
+
+部署后，在 Render 服务的 Shell 中运行：
+
+```sh
+flask --app app create-admin
+```
+
+只在尚无管理员时执行。不要在聊天、代码或 GitHub 中放置管理员密码、`SECRET_KEY` 或短信密钥。Render 环境变量中应设置固定的 `SECRET_KEY`（Blueprint 会生成），不再使用 `ADMIN_USERNAME`、`ADMIN_PASSWORD` 或 `TEACHER_INVITE_CODE` 来引导角色。
+
+当前数据库仍为 SQLite。切换 PostgreSQL 属于后续独立迁移阶段；届时需要先备份 SQLite 数据和附件，在副本上演练迁移、核对记录数和关联，再切换生产连接。
+
+## 测试
+
+运行自动化测试：
+
+```sh
+python -m unittest discover -s tests -v
+```
+
+测试覆盖公开注册角色固定、权限边界、禁用账号、首次改密、管理员一次性创建、教师管理和旧 SQLite 迁移数据保留。
+
+## 当前范围
+
+本阶段已完成三级角色基础、命令行管理员初始化、教师账号管理基础和旧 SQLite 用户表备份迁移。完整的学生/教师资料页、提交历史、作业编辑删除、公告管理、完整审计搜索、PostgreSQL、短信验证码等仍需按阶段继续开发。

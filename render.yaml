@@ -23,9 +23,3 @@ services:
         value: 20
       - key: SECRET_KEY
         generateValue: true
-      - key: ADMIN_USERNAME
-        sync: false
-      - key: ADMIN_PASSWORD
-        sync: false
-      - key: TEACHER_INVITE_CODE
-        sync: false

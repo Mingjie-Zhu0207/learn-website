@@ -2,17 +2,17 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f7f8fc"><title>{% block title %}作业提交站{% endblock %} · 澄屿</title>
+  <meta name="theme-color" content="#f7f8fc"><title>{% block title %}作业管理{% endblock %} · 诚语课堂</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <header class="topbar"><a class="brand" href="{{ url_for('home') if current_user else url_for('login') }}"><span class="brand-mark">澄</span><span>澄屿 <small>作业空间</small></span></a>
-    {% if current_user %}<nav class="nav"><a href="{{ url_for('home') }}">作业列表</a>{% if current_user['role']=='teacher' %}<a href="{{ url_for('new_assignment') }}">发布作业</a>{% endif %}</nav><div class="user-menu"><span class="user-name">{{ current_user['display_name'] }}<small>{{ '教师' if current_user['role']=='teacher' else '学生' }}</small></span><form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button">退出</button></form></div>{% endif %}
+  <header class="topbar"><a class="brand" href="{{ url_for('home') if current_user else url_for('login') }}"><span class="brand-mark">诚</span><span>诚语课堂 <small>学生作业管理平台</small></span></a>
+    {% if current_user %}<nav class="nav">{% if current_user['role']=='admin' %}<a href="{{ url_for('home') }}">管理员工作台</a><a href="{{ url_for('admin_teachers') }}">教师管理</a><a href="{{ url_for('admin_audit_logs') }}">操作日志</a>{% elif current_user['role']=='teacher' %}<a href="{{ url_for('home') }}">教师工作台</a><a href="{{ url_for('new_assignment') }}">发布作业</a>{% else %}<a href="{{ url_for('home') }}">学生工作台</a>{% endif %}</nav><div class="user-menu"><span class="user-name">{{ current_user['display_name'] }}<small>{{ {'admin':'管理员','teacher':'教师','student':'学生'}[current_user['role']] }}</small></span><form method="post" action="{{ url_for('logout') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token }}"><button class="text-button">退出</button></form></div>{% endif %}
   </header>
   <main class="container">
     {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}<div class="flashes">{% for category, message in messages %}<div class="flash {{ category }}">{{ message }}</div>{% endfor %}</div>{% endif %}{% endwith %}
     {% block content %}{% endblock %}
   </main>
-  <footer class="footer">澄屿作业空间 <span>专注学习，认真完成每一次提交。</span></footer>
+  <footer class="footer">诚语课堂 <span>专注学习，认真完成每一次提交。</span></footer>
 </body>
 </html>
